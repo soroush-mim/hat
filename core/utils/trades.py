@@ -88,4 +88,4 @@ def trades_loss(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, 
     batch_metrics = {'loss': loss.item(), 'clean_acc': accuracy(y, logits_natural.detach()), 
                      'adversarial_acc': accuracy(y, logits_adv.detach())}
         
-    return loss, batch_metrics
+    return loss, batch_metrics, x_adv.detach().cpu()

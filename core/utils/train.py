@@ -20,6 +20,7 @@ from .hat import hat_loss
 from .mart import mart_loss
 from .rst import CosineLR
 from .trades import trades_loss
+from .memory_trades import memory_trades_loss
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -127,7 +128,7 @@ class Trainer(object):
                 elif self.params.beta is not None and self.params.mart:
                     loss, batch_metrics = self.mart_loss(x, y, beta=self.params.beta)
                 elif self.params.beta is not None:
-                    loss, batch_metrics = self.trades_loss(x, y, beta=self.params.beta)
+                    loss, batch_metrics, _ = self.trades_loss(x, y, beta=self.params.beta)
                 else:
                     loss, batch_metrics = self.adversarial_loss(x, y)
             else:
@@ -145,6 +146,42 @@ class Trainer(object):
         if self.params.scheduler in ['step', 'converge', 'cosine', 'cosinew']:
             self.scheduler.step()
         return dict(metrics.mean())
+    
+
+    def memory_train(self, dataloader, dataloader_prime=None, epoch=0, verbose=True):
+        """
+        Run one epoch of training.
+        """
+        metrics = pd.DataFrame()
+        self.model.train()
+        adv_list = []
+        
+        for i, data in enumerate(tqdm(dataloader, desc='Epoch {}: '.format(epoch), disable=not verbose)):
+            x, y = data
+            x, y = x.to(device), y.to(device)
+
+            if epoch == 0:
+                print('epoch 0')
+                loss, batch_metrics, x_adv = self.trades_loss(x, y, beta=self.params.beta)
+                
+            else :
+                x_prime = dataloader_prime[i].to(device)
+                loss, batch_metrics, x_adv = self.memory_loss(x, y, x_prime, beta=self.params.beta, beta_prime=self.params.beta_prime)
+
+
+            adv_list.append(x_adv)    
+            loss.backward()
+            if self.params.clip_grad:
+                nn.utils.clip_grad_norm_(self.model.parameters(), self.params.clip_grad)
+            self.optimizer.step()
+            if self.params.scheduler in ['cyclic']:
+                self.scheduler.step()
+            
+            metrics = metrics.append(pd.DataFrame(batch_metrics, index=[0]), ignore_index=True)
+        
+        if self.params.scheduler in ['step', 'converge', 'cosine', 'cosinew']:
+            self.scheduler.step()
+        return dict(metrics.mean()), adv_list
     
     
     def standard_loss(self, x, y):
@@ -208,7 +245,16 @@ class Trainer(object):
         loss, batch_metrics = trades_loss(self.model, x, y, self.optimizer, step_size=self.params.attack_step, 
                                           epsilon=self.params.attack_eps, perturb_steps=self.params.attack_iter, 
                                           beta=beta, attack=self.params.attack)
-        return loss, batch_metrics  
+        return loss, batch_metrics, x_adv 
+
+    def memory_loss(self, x, y, x_prime, beta, beta_prime):
+        """
+        MEMORY training.
+        """
+        loss, batch_metrics, x_adv = memory_trades_loss(self.model, x, y, x_prime,  self.optimizer, step_size=self.params.attack_step, 
+                                          epsilon=self.params.attack_eps, perturb_steps=self.params.attack_iter, 
+                                          beta=beta, attack=self.params.attack, beta_prime=beta_prime)
+        return loss, batch_metrics, x_adv
 
     
     def mart_loss(self, x, y, beta):
