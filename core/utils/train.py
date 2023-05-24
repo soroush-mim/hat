@@ -147,7 +147,6 @@ class Trainer(object):
             self.scheduler.step()
         return dict(metrics.mean())
     
-
     def memory_train(self, dataloader, dataloader_prime=None, epoch=0, verbose=True):
         """
         Run one epoch of training.
@@ -160,16 +159,15 @@ class Trainer(object):
             x, y = data
             x, y = x.to(device), y.to(device)
 
-            if epoch == 0:
+            if epoch == 1:
                 print('epoch 0')
                 loss, batch_metrics, x_adv = self.trades_loss(x, y, beta=self.params.beta)
                 
-            else :
+            else:
                 x_prime = dataloader_prime[i].to(device)
                 loss, batch_metrics, x_adv = self.memory_loss(x, y, x_prime, beta=self.params.beta, beta_prime=self.params.beta_prime)
 
-
-            adv_list.append(x_adv)    
+            adv_list.append(x_adv)
             loss.backward()
             if self.params.clip_grad:
                 nn.utils.clip_grad_norm_(self.model.parameters(), self.params.clip_grad)
