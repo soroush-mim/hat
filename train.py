@@ -74,7 +74,7 @@ if args.model in ['wrn-34-10', 'wrn-34-20'] or 'swish' in args.model or 'imagene
 
 seed(args.seed)
 train_dataset, test_dataset, train_dataloader, test_dataloader = load_data(
-    DATA_DIR, BATCH_SIZE, BATCH_SIZE_VALIDATION, use_augmentation=args.augment, shuffle_train=True, 
+    DATA_DIR, BATCH_SIZE, BATCH_SIZE_VALIDATION, use_augmentation=args.augment, shuffle_train=False, 
     aux_data_filename=args.aux_data_filename, unsup_fraction=args.unsup_fraction
 )
 num_train_samples = len(train_dataset)
@@ -132,7 +132,8 @@ for epoch in range(1, NUM_STD_EPOCHS+1):
         test_adv_acc = trainer.eval(test_dataloader, adversarial=True)
         logger.log('Adversarial Accuracy-\tTest: {:.2f}%.'.format(test_adv_acc*100))
         epoch_metrics.update({'test_adversarial_acc': test_adv_acc})
-    metrics = metrics.append(pd.DataFrame(epoch_metrics, index=[0]), ignore_index=True)
+    #metrics = metrics.append(pd.DataFrame(epoch_metrics, index=[0]), ignore_index=True)
+    metrics = pd.concat([metrics, pd.DataFrame(epoch_metrics, index=[0])])
         
 if NUM_STD_EPOCHS > 0:
     trainer.load_model(WEIGHTS)
@@ -167,7 +168,14 @@ for epoch in range(1, NUM_ADV_EPOCHS+1):
     if args.scheduler:
         last_lr = trainer.scheduler.get_last_lr()[0]
     
-    res = trainer.train(train_dataloader, epoch=epoch, adversarial=True)
+    if args.memory_training:
+        if epoch == 1:
+            res, adv_data_list = trainer.memory_train(train_dataloader, epoch=epoch)
+        else:
+            res, adv_data_list = trainer.memory_train(train_dataloader, epoch=epoch, dataloader_prime=adv_data_list)
+    else
+        res = trainer.train(train_dataloader, epoch=epoch, adversarial=True)
+
     test_acc = trainer.eval(test_dataloader)
 
     if args.exp and (epoch % 5 == 0 or epoch == 1):
@@ -199,7 +207,8 @@ for epoch in range(1, NUM_ADV_EPOCHS+1):
     trainer.save_model(os.path.join(LOG_DIR, 'weights-last.pt'))
 
     logger.log('Time taken: {}'.format(format_time(time.time()-start)))
-    metrics = metrics.append(pd.DataFrame(epoch_metrics, index=[0]), ignore_index=True)
+    # metrics = metrics.append(pd.DataFrame(epoch_metrics, index=[0]), ignore_index=True)
+    metrics = pd.concat([metrics, pd.DataFrame(epoch_metrics, index=[0])])
     metrics.to_csv(os.path.join(LOG_DIR, 'stats_adv.csv'), index=False)
 
     

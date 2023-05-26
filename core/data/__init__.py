@@ -49,7 +49,7 @@ def get_data_info(data_dir):
     return DATA_DESC
 
 
-def load_data(data_dir, batch_size=256, batch_size_test=256, num_workers=8, use_augmentation=False, shuffle_train=True, 
+def load_data(data_dir, batch_size=256, batch_size_test=256, num_workers=8, use_augmentation=False, shuffle_train=False, 
               aux_data_filename=None, unsup_fraction=None, validation=False):
     """
     Returns train, test datasets and dataloaders.
