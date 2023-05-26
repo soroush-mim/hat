@@ -240,7 +240,7 @@ class Trainer(object):
         """
         TRADES training.
         """
-        loss, batch_metrics = trades_loss(self.model, x, y, self.optimizer, step_size=self.params.attack_step, 
+        loss, batch_metrics, x_adv = trades_loss(self.model, x, y, self.optimizer, step_size=self.params.attack_step, 
                                           epsilon=self.params.attack_eps, perturb_steps=self.params.attack_iter, 
                                           beta=beta, attack=self.params.attack)
         return loss, batch_metrics, x_adv 
