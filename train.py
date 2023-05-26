@@ -173,7 +173,7 @@ for epoch in range(1, NUM_ADV_EPOCHS+1):
             res, adv_data_list = trainer.memory_train(train_dataloader, epoch=epoch)
         else:
             res, adv_data_list = trainer.memory_train(train_dataloader, epoch=epoch, dataloader_prime=adv_data_list)
-    else
+    else:
         res = trainer.train(train_dataloader, epoch=epoch, adversarial=True)
 
     test_acc = trainer.eval(test_dataloader)
