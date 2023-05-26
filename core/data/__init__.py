@@ -7,7 +7,7 @@ from .svhn import load_svhn
 from .cifar10s import load_cifar10s
 from .tiny_imagenet import load_tinyimagenet
 from .cifar100s import load_cifar100s
-from .imagenet100 import load_imagenet100
+# from .imagenet100 import load_imagenet100
 
 from .semisup import get_semisup_dataloaders
 
@@ -22,7 +22,7 @@ _LOAD_DATASET_FN = {
     'tiny-imagenet': load_tinyimagenet,
     'cifar10s': load_cifar10s,
     'cifar100s': load_cifar100s,
-    'imagenet100': load_imagenet100,
+    # 'imagenet100': load_imagenet100,
 }
 
 

@@ -158,7 +158,11 @@ if NUM_ADV_EPOCHS > 0:
     old_score = [0.0, 0.0]
     logger.log('Adversarial training for {} epochs'.format(NUM_ADV_EPOCHS))
     trainer.init_optimizer(args.num_adv_epochs)
-    test_adv_acc = 0.0    
+    test_adv_acc = 0.0  
+
+    if args.memory_training:
+        print('Memory Training')
+        logger.log('Memory Training')
     
 
 for epoch in range(1, NUM_ADV_EPOCHS+1):
