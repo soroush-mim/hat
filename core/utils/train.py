@@ -161,7 +161,6 @@ class Trainer(object):
             x, y = x.to(device), y.to(device)
 
             if epoch == 1:
-                print('epoch 0')
                 loss, batch_metrics, x_adv = self.trades_loss(x, y, beta=self.params.beta)
                 
             else:
@@ -253,7 +252,7 @@ class Trainer(object):
         """
         loss, batch_metrics, x_adv = memory_trades_loss(self.model, x, y, x_prime,  self.optimizer, step_size=self.params.attack_step, 
                                           epsilon=self.params.attack_eps, perturb_steps=self.params.attack_iter, 
-                                          beta=beta, attack=self.params.attack, beta_prime=beta_prime)
+                                          beta=beta, attack=self.params.attack, beta_prime=beta_prime, attack_loss=self.params.attack_loss)
         return loss, batch_metrics, x_adv
 
     

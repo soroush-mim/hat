@@ -22,6 +22,8 @@ def load_cifar10(data_dir, use_augmentation=False):
     Returns:
         train dataset, test dataset. 
     """
+
+    print('loading cifar10...')
     test_transform = transforms.Compose([transforms.ToTensor()])
     if use_augmentation:
         train_transform = transforms.Compose([transforms.RandomCrop(32, padding=4), transforms.RandomHorizontalFlip(0.5), 
@@ -30,5 +32,7 @@ def load_cifar10(data_dir, use_augmentation=False):
         train_transform = test_transform
     
     train_dataset = torchvision.datasets.CIFAR10(root=data_dir, train=True, download=True, transform=train_transform)
-    test_dataset = torchvision.datasets.CIFAR10(root=data_dir, train=False, download=True, transform=test_transform)    
+    test_dataset = torchvision.datasets.CIFAR10(root=data_dir, train=False, download=True, transform=test_transform)
+
+    print('cifar10 loaded')    
     return train_dataset, test_dataset

@@ -19,8 +19,8 @@ def parser_train():
     parser.add_argument('--batch-size-validation', type=int, default=256, help='Batch size for testing.')
     parser.add_argument('--num-samples-eval', type=int, default=512, help='Number of samples to use for margin calculations.')
     
-    parser.add_argument('--data-dir', type=str, default='/cluster/scratch/rarade/data/')
-    parser.add_argument('--log-dir', type=str, default='/cluster/home/rarade/adversarial-hat/logs/')
+    parser.add_argument('--data-dir', type=str, default='/home/mahdi/data/')
+    parser.add_argument('--log-dir', type=str, default='/home/mahdi/hat/logs/')
     parser.add_argument('--tmp-dir', type=str, default='/cluster/scratch/rarade/')
     
     parser.add_argument('-d', '--data', type=str, default='cifar10', choices=DATASETS, help='Data to use.')
@@ -37,6 +37,8 @@ def parser_train():
 
     parser.add_argument('--memory_training', action='store_true', help='Use memory training.')
     parser.add_argument('--beta_prime', default=None, type=float)
+    parser.add_argument('--attack_loss', type=str, default='kl', choices=['ce', 'kl', 'memory-kl'],\
+                         help='loss type for creating adversarial examples in memory training')
     
     parser.add_argument('--h', default=2.0, type=float, help='Parameter h to compute helper examples (x + h*r) for HAT.')
     parser.add_argument('--helper-model', type=str, default=None, help='Helper model weights file name for HAT.')
@@ -77,8 +79,8 @@ def parser_eval():
     """
     parser = argparse.ArgumentParser(description='Robustness evaluation.')
 
-    parser.add_argument('--data-dir', type=str, default='/cluster/home/rarade/adversarial-hat/data/')
-    parser.add_argument('--log-dir', type=str, default='/cluster/home/rarade/adversarial-hat/logs/')
+    parser.add_argument('--data-dir', type=str, default='/home/mahdi/data/')
+    parser.add_argument('--log-dir', type=str, default='/home/mahdi/hat/logs/')
         
     parser.add_argument('--desc', type=str, required=True, help='Description of model to be evaluated.')
     parser.add_argument('--num-samples', type=int, default=1000, help='Number of test samples.')

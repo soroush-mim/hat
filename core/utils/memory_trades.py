@@ -19,7 +19,7 @@ def l2_norm(x):
 
 
 def memory_trades_loss(model, x_natural, y, x_prime, optimizer, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0, beta_prime=1.0, 
-                attack='linf-pgd', memory_attack=False):
+                attack='linf-pgd', attack_loss='kl'):
     """
     TRADES training (Zhang et al, 2019).
     """
@@ -37,11 +37,16 @@ def memory_trades_loss(model, x_natural, y, x_prime, optimizer, step_size=0.003,
         for _ in range(perturb_steps):
             x_adv.requires_grad_()
             with torch.enable_grad():
-                if memory_attack:
+                if attack_loss == 'memory-kl':
                     loss_kl = criterion_kl(F.log_softmax(model(x_adv), dim=1), p_natural) +\
                           (beta_prime/beta) * criterion_kl(F.log_softmax(model(x_adv), dim=1), p_x_prime)
-                else:
+                elif attack_loss == 'kl':
                     loss_kl = criterion_kl(F.log_softmax(model(x_adv), dim=1), p_natural)
+                
+                elif attack_loss == 'ce':
+                    loss_kl = F.cross_entropy(model(x_adv), y)
+                else:
+                    raise ValueError(f'Attack loss={attack_loss} not supported')
             grad = torch.autograd.grad(loss_kl, [x_adv])[0]
             x_adv = x_adv.detach() + step_size * torch.sign(grad.detach())
             x_adv = torch.min(torch.max(x_adv, x_natural - epsilon), x_natural + epsilon)

@@ -71,7 +71,7 @@ if args.model in ['wrn-34-10', 'wrn-34-20'] or 'swish' in args.model or 'imagene
 
 
 # Load data
-
+print('loading data...')
 seed(args.seed)
 train_dataset, test_dataset, train_dataloader, test_dataloader = load_data(
     DATA_DIR, BATCH_SIZE, BATCH_SIZE_VALIDATION, use_augmentation=args.augment, shuffle_train=False, 
@@ -82,6 +82,7 @@ num_test_samples = len(test_dataset)
 
 train_indices = np.random.choice(num_train_samples, NUM_SAMPLES_EVAL, replace=False)
 test_indices = np.random.choice(num_test_samples, NUM_SAMPLES_EVAL, replace=False)
+print('data loading completed')
 
 pin_memory = torch.cuda.is_available()
 if args.exp:
@@ -98,11 +99,12 @@ del train_dataset, test_dataset
 
 
 # Standard Training
-
+print('loading trainer')
 seed(args.seed)
 metrics = pd.DataFrame()
 trainer = Trainer(info, args)
 last_lr = args.lr
+print('trainer loading completed')
 
 logger.log('\n\n')
 logger.log('Standard training for {} epochs'.format(NUM_STD_EPOCHS))
