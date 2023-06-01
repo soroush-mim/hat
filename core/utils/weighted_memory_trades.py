@@ -91,12 +91,18 @@ def memory_trades_loss(model, x_natural, y, x_prime, optimizer, step_size=0.003,
     logits_natural = model(x_natural)
     logits_adv = model(x_adv)
     logits_x_prime = model(x_prime)
-    loss_natural = F.cross_entropy(logits_natural, y)
     log_softmax_adv_logits = F.log_softmax(logits_adv, dim=1)
+    loss_natural = F.cross_entropy(logits_natural, y)
     loss_robust = (1.0 / batch_size) * criterion_kl(log_softmax_adv_logits,
                                                     F.softmax(logits_natural, dim=1))
-    memory_loss = (1.0 / batch_size) * criterion_kl(log_softmax_adv_logits,
-                                                    F.softmax(logits_x_prime, dim=1))
+    
+    kl_without_reduction = nn.KLDivLoss(reduction='none')
+    x_prime_true_preds = (torch.softmax(logits_x_prime, dim=1).argmax(dim=1) == y).float()
+
+    memory_loss = (1.0 / batch_size) * torch.sum(torch.sum(kl_without_reduction\
+                  (log_softmax_adv_logits, F.softmax(logits_x_prime, dim=1)),
+                    dim=1) * (0.0000001 + x_prime_true_preds))
+    
     loss = loss_natural + beta * loss_robust + beta_prime * memory_loss
     
     batch_metrics = {'loss': loss.item(), 'clean_acc': accuracy(y, logits_natural.detach()), 
