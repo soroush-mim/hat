@@ -21,6 +21,7 @@ from .mart import mart_loss
 from .rst import CosineLR
 from .trades import trades_loss
 from .memory_trades import memory_trades_loss
+from .memory_trades_V2 import memory_trades_loss_V2
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -43,6 +44,10 @@ class Trainer(object):
 
         self.params = args
         self.criterion = nn.CrossEntropyLoss()
+
+        if self.params.memory_training and self.params.V2:
+            self.prev_step_model = create_model(args.model, args.normalize, info, device)
+            print('memory training version 2')
         
         self.init_optimizer(self.params.num_std_epochs)
         
@@ -162,13 +167,24 @@ class Trainer(object):
 
             if epoch == 1:
                 loss, batch_metrics, x_adv = self.trades_loss(x, y, beta=self.params.beta)
+
+                if self.params.V2:
+                    self.prev_step_model.load_state_dict(self.model.state_dict())
+                else:
+                    adv_list.append(x_adv)
                 
             else:
-                x_prime = dataloader_prime[i].to(device)
-                loss, batch_metrics, x_adv = self.memory_loss(x, y, x_prime, beta=self.params.beta,
-                                                               beta_prime=self.params.beta_prime, weighted=self.params.weighted)
 
-            adv_list.append(x_adv)
+                if self.params.V2:
+                    loss, batch_metrics = self.memory_loss_V2(x, y, beta=self.params.beta,
+                                                                beta_prime=self.params.beta_prime, weighted=self.params.weighted)
+                    self.prev_step_model.load_state_dict(self.model.state_dict())
+                else:
+                    x_prime = dataloader_prime[i].to(device)
+                    loss, batch_metrics, x_adv = self.memory_loss(x, y, x_prime, beta=self.params.beta,
+                                                                beta_prime=self.params.beta_prime, weighted=self.params.weighted)
+                    adv_list.append(x_adv)
+
             loss.backward()
             if self.params.clip_grad:
                 nn.utils.clip_grad_norm_(self.model.parameters(), self.params.clip_grad)
@@ -256,6 +272,16 @@ class Trainer(object):
                                           beta=beta, attack=self.params.attack, beta_prime=beta_prime,
                                             attack_loss=self.params.attack_loss, weighted=weighted)
         return loss, batch_metrics, x_adv
+    
+    def memory_loss_V2(self, x, y, beta, beta_prime, weighted):
+        """
+        MEMORY training.
+        """
+        loss, batch_metrics = memory_trades_loss_V2(self.model, x, y, self.prev_step_model,  self.optimizer, step_size=self.params.attack_step, 
+                                          epsilon=self.params.attack_eps, perturb_steps=self.params.attack_iter, 
+                                          beta=beta, attack=self.params.attack, beta_prime=beta_prime,
+                                            attack_loss=self.params.attack_loss, weighted=weighted)
+        return loss, batch_metrics
 
     
     def mart_loss(self, x, y, beta):
