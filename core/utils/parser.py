@@ -39,6 +39,7 @@ def parser_train():
     parser.add_argument('--beta_prime', default=None, type=float)
     parser.add_argument('--attack_loss', type=str, default='kl', choices=['ce', 'kl', 'memory-kl'],\
                          help='loss type for creating adversarial examples in memory training')
+    parser.add_argument('--weighted', action='store_true', help='Use memory training with weights.')
     
     parser.add_argument('--h', default=2.0, type=float, help='Parameter h to compute helper examples (x + h*r) for HAT.')
     parser.add_argument('--helper-model', type=str, default=None, help='Helper model weights file name for HAT.')

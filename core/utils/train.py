@@ -165,7 +165,8 @@ class Trainer(object):
                 
             else:
                 x_prime = dataloader_prime[i].to(device)
-                loss, batch_metrics, x_adv = self.memory_loss(x, y, x_prime, beta=self.params.beta, beta_prime=self.params.beta_prime)
+                loss, batch_metrics, x_adv = self.memory_loss(x, y, x_prime, beta=self.params.beta,
+                                                               beta_prime=self.params.beta_prime, weighted=self.params.weighted)
 
             adv_list.append(x_adv)
             loss.backward()
@@ -246,13 +247,14 @@ class Trainer(object):
                                           beta=beta, attack=self.params.attack)
         return loss, batch_metrics, x_adv 
 
-    def memory_loss(self, x, y, x_prime, beta, beta_prime):
+    def memory_loss(self, x, y, x_prime, beta, beta_prime, weighted):
         """
         MEMORY training.
         """
         loss, batch_metrics, x_adv = memory_trades_loss(self.model, x, y, x_prime,  self.optimizer, step_size=self.params.attack_step, 
                                           epsilon=self.params.attack_eps, perturb_steps=self.params.attack_iter, 
-                                          beta=beta, attack=self.params.attack, beta_prime=beta_prime, attack_loss=self.params.attack_loss)
+                                          beta=beta, attack=self.params.attack, beta_prime=beta_prime,
+                                            attack_loss=self.params.attack_loss, weighted=weighted)
         return loss, batch_metrics, x_adv
 
     
