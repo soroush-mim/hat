@@ -98,7 +98,7 @@ def memory_trades_loss(model, x_natural, y, x_prime, optimizer, step_size=0.003,
     
     if weighted:
         kl_without_reduction = nn.KLDivLoss(reduction='none')
-        x_prime_true_preds = (torch.softmax(logits_x_prime, dim=1).argmax(dim=1) == y).float()
+        x_prime_true_preds = (F.softmax(logits_x_prime, dim=1).argmax(dim=1) != y).float()
 
         memory_loss = (1.0 / batch_size) * torch.sum(torch.sum(kl_without_reduction\
                   (log_softmax_adv_logits, F.softmax(logits_x_prime, dim=1)),

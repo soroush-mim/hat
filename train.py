@@ -74,7 +74,7 @@ if args.model in ['wrn-34-10', 'wrn-34-20'] or 'swish' in args.model or 'imagene
 print('loading data...')
 seed(args.seed)
 train_dataset, test_dataset, train_dataloader, test_dataloader = load_data(
-    DATA_DIR, BATCH_SIZE, BATCH_SIZE_VALIDATION, use_augmentation=args.augment, shuffle_train=False, 
+    DATA_DIR, BATCH_SIZE, BATCH_SIZE_VALIDATION, use_augmentation=args.augment, shuffle_train=args.shuffle_train, 
     aux_data_filename=args.aux_data_filename, unsup_fraction=args.unsup_fraction
 )
 num_train_samples = len(train_dataset)
@@ -163,7 +163,6 @@ if NUM_ADV_EPOCHS > 0:
     test_adv_acc = 0.0  
 
     if args.memory_training:
-        print('Memory Training')
         logger.log('Memory Training')
     
 

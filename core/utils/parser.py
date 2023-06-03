@@ -18,7 +18,8 @@ def parser_train():
     parser.add_argument('--batch-size', type=int, default=128, help='Batch size for training.')
     parser.add_argument('--batch-size-validation', type=int, default=256, help='Batch size for testing.')
     parser.add_argument('--num-samples-eval', type=int, default=512, help='Number of samples to use for margin calculations.')
-    
+    parser.add_argument('--shuffle_train', action='store_true', help='shuffle training set.')
+
     parser.add_argument('--data-dir', type=str, default='/home/mahdi/data/')
     parser.add_argument('--log-dir', type=str, default='/home/mahdi/hat/logs/')
     parser.add_argument('--tmp-dir', type=str, default='/cluster/scratch/rarade/')
@@ -29,11 +30,11 @@ def parser_train():
 
     parser.add_argument('-m', '--model', choices=MODELS, default='resnet18', help='Model architecture to be used.')
     parser.add_argument('--normalize', type=str2bool, default=False, help='Normalize input.')
-    parser.add_argument('--pretrained-file', type=str, default=None, help='Pretrained weights file name.')
+    parser.add_argument('--pretrained-file', type=str, default='c10-standard', help='Pretrained weights file name.')
 
     parser.add_argument('-ns', '--num-std-epochs', type=int, default=0, help='Number of standard training epochs.')
-    parser.add_argument('-na', '--num-adv-epochs', type=int, default=0, help='Number of adversarial training epochs.')
-    parser.add_argument('--adv-eval-freq', type=int, default=30, help='Adversarial evaluation frequency (in epochs).')
+    parser.add_argument('-na', '--num-adv-epochs', type=int, default=50, help='Number of adversarial training epochs.')
+    parser.add_argument('--adv-eval-freq', type=int, default=1, help='Adversarial evaluation frequency (in epochs).')
 
     parser.add_argument('--memory_training', action='store_true', help='Use memory training.')
     parser.add_argument('--beta_prime', default=None, type=float)

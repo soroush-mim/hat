@@ -33,17 +33,19 @@ def memory_trades_loss_V2(model, x_natural, y, prev_model, optimizer, step_size=
     x_adv = x_natural.detach() + 0.001 * torch.randn(x_natural.shape).cuda().detach()
     x_adv_prime = x_natural.detach() + 0.001 * torch.randn(x_natural.shape).cuda().detach()
     p_natural = F.softmax(model(x_natural), dim=1)
+    p_natural_prev = F.softmax(prev_model(x_natural), dim=1)
     
     if attack == 'linf-pgd':
         for _ in range(perturb_steps):
             x_adv.requires_grad_()
+            x_adv_prime.requires_grad_()
             with torch.enable_grad():
                 if attack_loss == 'memory-kl':
                     loss_kl = criterion_kl(F.log_softmax(model(x_adv), dim=1), p_natural) +\
                           (beta_prime/beta) * criterion_kl(F.log_softmax(model(x_adv), dim=1), p_x_prime)
                 elif attack_loss == 'kl':
                     loss_kl = criterion_kl(F.log_softmax(model(x_adv), dim=1), p_natural)
-                    loss_kl_prime = criterion_kl(F.log_softmax(prev_model(x_adv_prime), dim=1), p_natural)
+                    loss_kl_prime = criterion_kl(F.log_softmax(prev_model(x_adv_prime), dim=1), p_natural_prev)
                 
                 elif attack_loss == 'ce':
                     loss_kl = F.cross_entropy(model(x_adv), y)
@@ -107,7 +109,7 @@ def memory_trades_loss_V2(model, x_natural, y, prev_model, optimizer, step_size=
     
     if weighted:
         kl_without_reduction = nn.KLDivLoss(reduction='none')
-        x_prime_true_preds = (torch.softmax(logits_x_prime, dim=1).argmax(dim=1) == y).float()
+        x_prime_true_preds = (F.softmax(logits_x_prime, dim=1).argmax(dim=1) == y).float()
 
         memory_loss = (1.0 / batch_size) * torch.sum(torch.sum(kl_without_reduction\
                   (log_softmax_adv_logits, F.softmax(logits_x_prime, dim=1)),
