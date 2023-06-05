@@ -37,6 +37,7 @@ def parser_train():
     parser.add_argument('--adv-eval-freq', type=int, default=1, help='Adversarial evaluation frequency (in epochs).')
 
     parser.add_argument('--memory_training', action='store_true', help='Use memory training.')
+    parser.add_argument('--memory_mart', action='store_true', help='Use nart memory training.')
     parser.add_argument('--beta_prime', default=None, type=float)
     parser.add_argument('--attack_loss', type=str, default='kl', choices=['ce', 'kl', 'memory-kl'],\
                          help='loss type for creating adversarial examples in memory training')

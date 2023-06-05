@@ -37,10 +37,10 @@ for i,desc in enumerate(args.descs):
     LOG_DIR = os.path.join(args.log_dir, desc)
     log_file_dir = os.path.join(LOG_DIR, 'log-train.log')
     adv_accs = extract_adv_accs_from_log(log_file_dir)
-    if i < 4:
-        plt.plot(adv_accs, label = desc, linestyle=linestyles[i])
-    else:
-        plt.plot(adv_accs, label = desc)
+    # if i < 4:
+    #     plt.plot(adv_accs, label = desc, linestyle=linestyles[i])
+    # else:
+    plt.plot(adv_accs, label = desc)
 
 plt.xlabel("epoch")
 plt.ylabel("adv acc")

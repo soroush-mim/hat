@@ -22,6 +22,7 @@ from .rst import CosineLR
 from .trades import trades_loss
 from .memory_trades import memory_trades_loss
 from .memory_trades_V2 import memory_trades_loss_V2
+from .memory_mart import memory_mart_loss
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -165,25 +166,35 @@ class Trainer(object):
             x, y = data
             x, y = x.to(device), y.to(device)
 
-            if epoch == 1:
-                loss, batch_metrics, x_adv = self.trades_loss(x, y, beta=self.params.beta)
-
-                if self.params.V2:
-                    self.prev_step_model.load_state_dict(self.model.state_dict())
+            if self.params.memory_mart:
+                if epoch == 1:
+                    loss, batch_metrics, x_adv = self.memory_mart(x,y,None,beta=self.params.beta)
                 else:
-                    adv_list.append(x_adv)
+                    x_prime = dataloader_prime[i].to(device)
+                    loss, batch_metrics, x_adv = self.memory_mart(x,y,x_prime,beta=self.params.beta)
+                adv_list.append(x_adv)
                 
             else:
 
-                if self.params.V2:
-                    loss, batch_metrics = self.memory_loss_V2(x, y, beta=self.params.beta,
-                                                                beta_prime=self.params.beta_prime, weighted=self.params.weighted)
-                    self.prev_step_model.load_state_dict(self.model.state_dict())
+                if epoch == 1:
+                    loss, batch_metrics, x_adv = self.trades_loss(x, y, beta=self.params.beta)
+
+                    if self.params.V2:
+                        self.prev_step_model.load_state_dict(self.model.state_dict())
+                    else:
+                        adv_list.append(x_adv)
+                    
                 else:
-                    x_prime = dataloader_prime[i].to(device)
-                    loss, batch_metrics, x_adv = self.memory_loss(x, y, x_prime, beta=self.params.beta,
-                                                                beta_prime=self.params.beta_prime, weighted=self.params.weighted)
-                    adv_list.append(x_adv)
+
+                    if self.params.V2:
+                        loss, batch_metrics = self.memory_loss_V2(x, y, beta=self.params.beta,
+                                                                    beta_prime=self.params.beta_prime, weighted=self.params.weighted)
+                        self.prev_step_model.load_state_dict(self.model.state_dict())
+                    else:
+                        x_prime = dataloader_prime[i].to(device)
+                        loss, batch_metrics, x_adv = self.memory_loss(x, y, x_prime, beta=self.params.beta,
+                                                                    beta_prime=self.params.beta_prime, weighted=self.params.weighted)
+                        adv_list.append(x_adv)
 
             loss.backward()
             if self.params.clip_grad:
@@ -271,6 +282,15 @@ class Trainer(object):
                                           epsilon=self.params.attack_eps, perturb_steps=self.params.attack_iter, 
                                           beta=beta, attack=self.params.attack, beta_prime=beta_prime,
                                             attack_loss=self.params.attack_loss, weighted=weighted)
+        return loss, batch_metrics, x_adv
+    
+    def memory_mart(self, x, y, x_prime, beta):
+        """
+        MEMORY training.
+        """
+        loss, batch_metrics, x_adv = memory_mart_loss(self.model, x, y, self.optimizer, x_prime, step_size=self.params.attack_step, 
+                                          epsilon=self.params.attack_eps, perturb_steps=self.params.attack_iter, 
+                                          beta=beta, attack=self.params.attack)
         return loss, batch_metrics, x_adv
     
     def memory_loss_V2(self, x, y, beta, beta_prime, weighted):
