@@ -10,6 +10,7 @@ def extract_adv_accs_from_log(dir):
     # losses = []
     adv_accs = []
     # clean_accs = []
+    memory_losses = []
     for line in content:
         # if 'Loss:' in line:
         #     losses.append(float(line.split('\t')[0].split(':')[1].strip()[:-1]))
@@ -17,6 +18,9 @@ def extract_adv_accs_from_log(dir):
         #     clean_accs.append(float(line.split(':')[2].strip()[:-2]))
         if 'Adversarial' in line and 'Train' in line:
             adv_accs.append(float(line.split(':')[2].strip()[:-2]))
+
+        # if 'memory Loss' in line:
+        #     memory_losses.append(float((line.split(':')[-1].strip())))
 
     # clean_accs = clean_accs[:-1]
     adv_accs = adv_accs[:-1]

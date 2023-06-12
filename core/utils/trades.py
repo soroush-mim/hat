@@ -19,7 +19,7 @@ def l2_norm(x):
 
 
 def trades_loss(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0, 
-                attack='linf-pgd'):
+                attack='linf-pgd', weighted=False):
     """
     TRADES training (Zhang et al, 2019).
     """
@@ -81,11 +81,21 @@ def trades_loss(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, 
     logits_natural = model(x_natural)
     logits_adv = model(x_adv)
     loss_natural = F.cross_entropy(logits_natural, y)
-    loss_robust = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_adv, dim=1),
-                                                    F.softmax(logits_natural, dim=1))
+
+    if weighted:
+        kl_without_reduction = nn.KLDivLoss(reduction='none')
+        x_true_preds = (F.softmax(logits_natural, dim=1).argmax(dim=1) == y).float()
+        # X_prime_false_preds = (x_prime_true_preds - 1) * -1.0
+
+        loss_robust = (1.0 / batch_size) * torch.sum(torch.sum(kl_without_reduction\
+                  (F.log_softmax(logits_adv, dim=1), F.softmax(logits_natural, dim=1)),
+                    dim=1) * (0.0000001 + x_true_preds))
+    else:
+        loss_robust = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_adv, dim=1),
+                                                        F.softmax(logits_natural, dim=1))
     loss = loss_natural + beta * loss_robust
     
     batch_metrics = {'loss': loss.item(), 'clean_acc': accuracy(y, logits_natural.detach()), 
-                     'adversarial_acc': accuracy(y, logits_adv.detach())}
+                     'adversarial_acc': accuracy(y, logits_adv.detach()), 'memory_loss':0.0}
         
     return loss, batch_metrics, x_adv.detach().cpu()

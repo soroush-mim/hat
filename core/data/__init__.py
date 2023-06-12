@@ -50,7 +50,7 @@ def get_data_info(data_dir):
 
 
 def load_data(data_dir, batch_size=256, batch_size_test=256, num_workers=8, use_augmentation=False, shuffle_train=False, 
-              aux_data_filename=None, unsup_fraction=None, validation=False):
+              aux_data_filename=None, unsup_fraction=None, validation=False,prime_data=False):
     """
     Returns train, test datasets and dataloaders.
     Arguments:
@@ -71,7 +71,7 @@ def load_data(data_dir, batch_size=256, batch_size_test=256, num_workers=8, use_
         train_dataset, test_dataset, val_dataset = load_dataset_fn(data_dir=data_dir, use_augmentation=use_augmentation, 
                                                                    aux_data_filename=aux_data_filename, validation=validation)
     else:
-        train_dataset, test_dataset = load_dataset_fn(data_dir=data_dir, use_augmentation=use_augmentation)
+        train_dataset, test_dataset = load_dataset_fn(data_dir=data_dir, use_augmentation=use_augmentation, prime_data = prime_data)
         if validation:
             num_train_samples = len(train_dataset)
             val_dataset = torch.utils.data.Subset(train_dataset, torch.arange(0, 1024))

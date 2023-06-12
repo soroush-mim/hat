@@ -19,6 +19,7 @@ def parser_train():
     parser.add_argument('--batch-size-validation', type=int, default=256, help='Batch size for testing.')
     parser.add_argument('--num-samples-eval', type=int, default=512, help='Number of samples to use for margin calculations.')
     parser.add_argument('--shuffle_train', action='store_true', help='shuffle training set.')
+    parser.add_argument('--prime_data', action='store_true', help='use dataset prime version')
 
     parser.add_argument('--data-dir', type=str, default='/home/mahdi/data/')
     parser.add_argument('--log-dir', type=str, default='/home/mahdi/hat/logs/')

@@ -50,3 +50,28 @@ class SemiSupervisedCIFAR10(SemiSupervisedDataset):
         assert self.base_dataset == 'cifar10', 'Only semi-supervised cifar10 is supported. Please use correct dataset!'
         self.dataset = torchvision.datasets.CIFAR10(train=train, **kwargs)
         self.dataset_size = len(self.dataset)
+
+
+from PIL import Image
+
+
+
+class CIFAR10_prime(torchvision.datasets.CIFAR10):
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
+        self.data_prime = []
+
+    def add_data_prime(data_prime):
+        self.data_prime = data_prime
+
+        
+        
+    def __getitem__(self, idx):
+        img = self.data[idx]
+        img = Image.fromarray(img).convert('RGB')
+        img = self.transform(img)
+
+        psudoLabel = torch.FloatTensor(self.label[idx])
+        real_label = self.targets[idx]
+
+        return img, psudoLabel, real_label

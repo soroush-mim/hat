@@ -75,7 +75,7 @@ print('loading data...')
 seed(args.seed)
 train_dataset, test_dataset, train_dataloader, test_dataloader = load_data(
     DATA_DIR, BATCH_SIZE, BATCH_SIZE_VALIDATION, use_augmentation=args.augment, shuffle_train=args.shuffle_train, 
-    aux_data_filename=args.aux_data_filename, unsup_fraction=args.unsup_fraction
+    aux_data_filename=args.aux_data_filename, unsup_fraction=args.unsup_fraction, prime_data=args.prime_data
 )
 num_train_samples = len(train_dataset)
 num_test_samples = len(test_dataset)
@@ -94,7 +94,8 @@ if args.exp:
     test_eval_dataloader = torch.utils.data.DataLoader(test_eval_dataset, batch_size=BATCH_SIZE_VALIDATION, shuffle=False, 
                                                        num_workers=4, pin_memory=pin_memory)
     del train_eval_dataset, test_eval_dataset
-del train_dataset, test_dataset
+# del train_dataset, test_dataset
+del test_dataset
 
 
 
@@ -175,9 +176,13 @@ for epoch in range(1, NUM_ADV_EPOCHS+1):
     
     if args.memory_training:
         if epoch == 1:
-            res, adv_data_list = trainer.memory_train(train_dataloader, epoch=epoch)
+            res, adv_data_list, x_primes = trainer.memory_train(train_dataloader, epoch=epoch)
         else:
-            res, adv_data_list = trainer.memory_train(train_dataloader, epoch=epoch, dataloader_prime=adv_data_list)
+            res, adv_data_list, x_primes = trainer.memory_train(train_dataloader, epoch=epoch, dataloader_prime=adv_data_list)
+
+        if args.prime_data:
+            train_dataset.add_data_prime(x_primes)
+
     else:
         res = trainer.train(train_dataloader, epoch=epoch, adversarial=True)
 
@@ -191,6 +196,8 @@ for epoch in range(1, NUM_ADV_EPOCHS+1):
         _ = trainer.save_and_eval_adversarial(test_eval_dataloader, save=save_eval_test_file, save_all=False)
     
     logger.log('Loss: {:.4f}.\tLR: {:.4f}'.format(res['loss'], last_lr))
+    if args.memory_training:
+        logger.log('memory Loss: {:.4f}'.format(res['memory_loss']))
     if 'clean_acc' in res:
         logger.log('Standard Accuracy-\tTrain: {:.2f}%.\tTest: {:.2f}%.'.format(res['clean_acc']*100, test_acc*100))
     else:

@@ -134,7 +134,7 @@ class Trainer(object):
                 elif self.params.beta is not None and self.params.mart:
                     loss, batch_metrics = self.mart_loss(x, y, beta=self.params.beta)
                 elif self.params.beta is not None:
-                    loss, batch_metrics, _ = self.trades_loss(x, y, beta=self.params.beta)
+                    loss, batch_metrics, _ = self.trades_loss(x, y, beta=self.params.beta, weighted=self.params.weighted)
                 else:
                     loss, batch_metrics = self.adversarial_loss(x, y)
             else:
@@ -161,9 +161,19 @@ class Trainer(object):
         metrics = pd.DataFrame()
         self.model.train()
         adv_list = []
+        x_primes = {}
         
         for i, data in enumerate(tqdm(dataloader, desc='Epoch {}: '.format(epoch), disable=not verbose)):
-            x, y = data
+
+            if self.params.prime_data:
+                if epoch == 1:
+                    x,y,ind = data
+                else:
+                    x,y,ind,x_prime = data
+                    x_prime = x_prime.to(device)
+            else:
+                x, y = data
+
             x, y = x.to(device), y.to(device)
 
             if self.params.memory_mart:
@@ -177,7 +187,7 @@ class Trainer(object):
             else:
 
                 if epoch == 1:
-                    loss, batch_metrics, x_adv = self.trades_loss(x, y, beta=self.params.beta)
+                    loss, batch_metrics, x_adv = self.trades_loss(x, y, beta=self.params.beta,weighted=self.params.weighted)
 
                     if self.params.V2:
                         self.prev_step_model.load_state_dict(self.model.state_dict())
@@ -191,10 +201,16 @@ class Trainer(object):
                                                                     beta_prime=self.params.beta_prime, weighted=self.params.weighted)
                         self.prev_step_model.load_state_dict(self.model.state_dict())
                     else:
-                        x_prime = dataloader_prime[i].to(device)
+
+                        if not self.params.prime_data:
+                            x_prime = dataloader_prime[i].to(device)
                         loss, batch_metrics, x_adv = self.memory_loss(x, y, x_prime, beta=self.params.beta,
                                                                     beta_prime=self.params.beta_prime, weighted=self.params.weighted)
                         adv_list.append(x_adv)
+            
+            if self.params.prime_data:
+                for j,i in enumerate(ind):
+                    x_primes[str(i.item())] = x_adv[j]
 
             loss.backward()
             if self.params.clip_grad:
@@ -208,7 +224,7 @@ class Trainer(object):
         
         if self.params.scheduler in ['step', 'converge', 'cosine', 'cosinew']:
             self.scheduler.step()
-        return dict(metrics.mean()), adv_list
+        return dict(metrics.mean()), adv_list, x_primes
     
     
     def standard_loss(self, x, y):
@@ -265,13 +281,13 @@ class Trainer(object):
         return loss, batch_metrics
         
 
-    def trades_loss(self, x, y, beta):
+    def trades_loss(self, x, y, beta, weighted=False):
         """
         TRADES training.
         """
         loss, batch_metrics, x_adv = trades_loss(self.model, x, y, self.optimizer, step_size=self.params.attack_step, 
                                           epsilon=self.params.attack_eps, perturb_steps=self.params.attack_iter, 
-                                          beta=beta, attack=self.params.attack)
+                                          beta=beta, attack=self.params.attack,weighted=weighted )
         return loss, batch_metrics, x_adv 
 
     def memory_loss(self, x, y, x_prime, beta, beta_prime, weighted):
