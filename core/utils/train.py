@@ -188,6 +188,8 @@ class Trainer(object):
 
                 if epoch == 1:
                     loss, batch_metrics, x_adv = self.trades_loss(x, y, beta=self.params.beta,weighted=self.params.weighted)
+                    if self.params.cos_sim:
+                        batch_metrics.update({'cos_sim':0})
 
                     if self.params.V2:
                         self.prev_step_model.load_state_dict(self.model.state_dict())
@@ -207,6 +209,8 @@ class Trainer(object):
                         loss, batch_metrics, x_adv = self.memory_loss(x, y, x_prime, beta=self.params.beta,
                                                                     beta_prime=self.params.beta_prime, weighted=self.params.weighted)
                         adv_list.append(x_adv)
+
+            
             
             if self.params.prime_data:
                 for j,i in enumerate(ind):
@@ -297,7 +301,7 @@ class Trainer(object):
         loss, batch_metrics, x_adv = memory_trades_loss(self.model, x, y, x_prime,  self.optimizer, step_size=self.params.attack_step, 
                                           epsilon=self.params.attack_eps, perturb_steps=self.params.attack_iter, 
                                           beta=beta, attack=self.params.attack, beta_prime=beta_prime,
-                                            attack_loss=self.params.attack_loss, weighted=weighted)
+                                            attack_loss=self.params.attack_loss, weighted=weighted, sim=self.params.cos_sim, ema_xprime=self.params.ema_coef)
         return loss, batch_metrics, x_adv
     
     def memory_mart(self, x, y, x_prime, beta):

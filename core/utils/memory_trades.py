@@ -17,9 +17,26 @@ def squared_l2_norm(x):
 def l2_norm(x):
     return squared_l2_norm(x).sqrt()
 
+def cos_similarity_mean(x, x_adv, x_prime, mask=None):
+    cos_sim = torch.nn.CosineSimilarity(dim=1)
+
+    sigma = x_adv - x
+    sigma_prime = x_prime - x
+
+    sigma = sigma.flatten(start_dim =1)
+    sigma_prime = sigma_prime.flatten(start_dim =1)
+
+    sim = cos_sim(sigma, sigma_prime)
+
+    if mask is not None:
+        sim = sim * mask
+
+    return sim.mean().item()
+
+
 
 def memory_trades_loss(model, x_natural, y, x_prime, optimizer, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0, beta_prime=1.0, 
-                attack='linf-pgd', attack_loss='kl', weighted=False):
+                attack='linf-pgd', attack_loss='kl', weighted=False, sim=False, ema_xprime = False):
     """
     TRADES training (Zhang et al, 2019).
     """
@@ -82,6 +99,10 @@ def memory_trades_loss(model, x_natural, y, x_prime, optimizer, step_size=0.003,
         x_adv = Variable(x_natural + delta, requires_grad=False)
     else:
         raise ValueError(f'Attack={attack} not supported for TRADES training!')
+    
+    if sim:
+        cos_sim = cos_similarity_mean(x_natural, x_adv, x_prime)
+    
     model.train()
 
     x_adv = Variable(torch.clamp(x_adv, 0.0, 1.0), requires_grad=False)
@@ -107,32 +128,48 @@ def memory_trades_loss(model, x_natural, y, x_prime, optimizer, step_size=0.003,
         pos_weights = x_true_preds * (1 + x_prime_max_probs - x_prime_true_probs)
         # pos_weights = beta_prime * pos_weights
 
-        x_false_preds = (x_true_preds - 1) * -1
+        ALPHA = 0.4
+        x_false_preds = 1 - x_true_preds
         x_true_probs = torch.gather(x_probs, 1, (y.unsqueeze(1)).long()).squeeze()
         x_max_probs =  x_probs.max(dim=1)[0]
-        neg_weights = x_false_preds * (1 + x_true_probs - x_max_probs)
+        neg_mask = (x_max_probs - x_true_probs) <= ALPHA
+        neg_weights = x_false_preds * neg_mask * (1 + x_true_probs - x_max_probs)
 
         weights = pos_weights + neg_weights
-
+        
+        #XPRIME WEIGHTED
         # memory_loss = (1.0 / batch_size) * torch.sum(torch.sum(kl_without_reduction\
-        #           (log_softmax_adv_logits, F.softmax(logits_x_prime, dim=1)),
-        #             dim=1) * (0.0000001 + x_prime_true_preds))
+        #           (F.log_softmax(logits_x_prime, dim=1), F.softmax(logits_natural, dim=1)),
+        #             dim=1) * (1.0000001 - x_prime_true_probs))
         
         loss_robust = (1.0 / batch_size) * torch.sum(torch.sum(kl_without_reduction\
                   (log_softmax_adv_logits, F.softmax(logits_natural, dim=1)),
                     dim=1) * (0.0000001 + weights))
+
+        # loss_robust = (1.0 / batch_size) * criterion_kl(log_softmax_adv_logits,
+        #                                                 F.softmax(logits_natural, dim=1))
+        
+        # memory_loss = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_x_prime, dim=1),
+        #                                             F.softmax(logits_natural, dim=1))
         
         loss = loss_natural + beta * loss_robust
         
     else:
-        memory_loss = (1.0 / batch_size) * criterion_kl(log_softmax_adv_logits,
-                                                    F.softmax(logits_x_prime, dim=1))
+        memory_loss = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_x_prime, dim=1),
+                                                        F.softmax(logits_natural, dim=1))
         loss_robust = (1.0 / batch_size) * criterion_kl(log_softmax_adv_logits,
                                                         F.softmax(logits_natural, dim=1))
         
         loss = loss_natural + beta * loss_robust + beta_prime * memory_loss
     
+    
     batch_metrics = {'loss': loss.item(), 'clean_acc': accuracy(y, logits_natural.detach()), 
-                     'adversarial_acc': accuracy(y, logits_adv.detach()), 'memory_loss':0}
+                     'adversarial_acc': accuracy(y, logits_adv.detach()), 'memory_loss':0.0}
+    if sim:
+        batch_metrics.update({'cos_sim':cos_sim})
+    
+    if ema_xprime:
+        ema_coef = 0.8 # avg on 1 /(1 - ema_coef) prev attacks
+        x_adv = (ema_coef * x_prime) + ((1 - ema_coef) * x_adv)
         
     return loss, batch_metrics, x_adv.detach().cpu()

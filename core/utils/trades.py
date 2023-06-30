@@ -82,16 +82,22 @@ def trades_loss(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, 
     logits_adv = model(x_adv)
     loss_natural = F.cross_entropy(logits_natural, y)
 
-    if weighted:
-        kl_without_reduction = nn.KLDivLoss(reduction='none')
-        x_true_preds = (F.softmax(logits_natural, dim=1).argmax(dim=1) == y).float()
-        # X_prime_false_preds = (x_prime_true_preds - 1) * -1.0
+    # if weighted:
+    #     kl_without_reduction = nn.KLDivLoss(reduction='none')
+    #     x_true_preds = (F.softmax(logits_natural, dim=1).argmax(dim=1) == y).float()
+    #     # X_prime_false_preds = (x_prime_true_preds - 1) * -1.0
+    #     # x_probs = F.softmax(logits_natural, dim=1)
+    #     # x_false_preds = 1 - x_true_preds
+    #     # x_true_probs = torch.gather(x_probs, 1, (y.unsqueeze(1)).long()).squeeze()
+    #     # x_max_probs =  x_probs.max(dim=1)[0]
+    #     # neg_weights = x_false_preds * (1 + x_true_probs - x_max_probs)
+    #     # weights = neg_weights + x_true_preds
 
-        loss_robust = (1.0 / batch_size) * torch.sum(torch.sum(kl_without_reduction\
-                  (F.log_softmax(logits_adv, dim=1), F.softmax(logits_natural, dim=1)),
-                    dim=1) * (0.0000001 + x_true_preds))
-    else:
-        loss_robust = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_adv, dim=1),
+    #     loss_robust = (1.0 / batch_size) * torch.sum(torch.sum(kl_without_reduction\
+    #               (F.log_softmax(logits_adv, dim=1), F.softmax(logits_natural, dim=1)),
+    #                 dim=1) * (0.0000001 + x_true_preds))
+    # else:
+    loss_robust = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_adv, dim=1),
                                                         F.softmax(logits_natural, dim=1))
     loss = loss_natural + beta * loss_robust
     

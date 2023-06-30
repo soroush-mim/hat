@@ -198,6 +198,8 @@ for epoch in range(1, NUM_ADV_EPOCHS+1):
     logger.log('Loss: {:.4f}.\tLR: {:.4f}'.format(res['loss'], last_lr))
     if args.memory_training:
         logger.log('memory Loss: {:.4f}'.format(res['memory_loss']))
+    if args.cos_sim:
+        logger.log('cosine sim: {:.4f}'.format(res['cos_sim']))
     if 'clean_acc' in res:
         logger.log('Standard Accuracy-\tTrain: {:.2f}%.\tTest: {:.2f}%.'.format(res['clean_acc']*100, test_acc*100))
     else:

@@ -44,6 +44,8 @@ def parser_train():
                          help='loss type for creating adversarial examples in memory training')
     parser.add_argument('--weighted', action='store_true', help='Use memory training with weights.')
     parser.add_argument('--V2', action='store_true', help='Use memory training version 2.')
+    parser.add_argument('--cos_sim', action='store_true', help='store attack similarity with prev epoch')
+    parser.add_argument('--ema_coef', action='store_true', help='Use ema in memory training for averaging prev attacks.')
     
     parser.add_argument('--h', default=2.0, type=float, help='Parameter h to compute helper examples (x + h*r) for HAT.')
     parser.add_argument('--helper-model', type=str, default=None, help='Helper model weights file name for HAT.')
